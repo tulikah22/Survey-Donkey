@@ -5,7 +5,7 @@ import { signMessage } from "@wagmi/core";
 import { Client } from "@xmtp/xmtp-js";
 import { QRCodeSVG } from "qrcode.react";
 import CopyToClipboard from "react-copy-to-clipboard";
-import { useDisconnect, usePublicClient, useSwitchNetwork, useWalletClient } from "wagmi";
+import { useDisconnect, useSwitchNetwork, useWalletClient } from "wagmi";
 import {
   ArrowLeftOnRectangleIcon,
   ArrowTopRightOnSquareIcon,
@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Address, Balance, BlockieAvatar } from "~~/components/scaffold-eth";
 import { useAutoConnect, useNetworkColor } from "~~/hooks/scaffold-eth";
-import { getBlockExplorerAddressLink, getTargetNetwork } from "~~/utils/scaffold-eth";
+import { getTargetNetwork } from "~~/utils/scaffold-eth";
 
 // import { useWalletClient } from 'wagmi'
 
@@ -28,10 +28,6 @@ const PEER_ADDRESS = "0x7E0b0363404751346930AF92C80D1fef932Cc48a";
 // const broadcasts_array = [Add1, Add2, "0x937C0d4a6294cdfa575de17382c7076b579DC176"];
 let globalXmtp: Client<string | undefined>;
 
-interface Signer {
-  getAddress(): Promise<string>;
-  signMessage(message: ArrayLike<number> | string): Promise<string>;
-}
 
 /**
  * Custom Wagmi Connect Button (watch balance + custom design)
@@ -49,8 +45,6 @@ export const RainbowKitCustomConnectButton = () => {
   const clientRef = useRef(null);
   const { data: walletClient } = useWalletClient();
   const [messages, setMessages] = useContext(MessageContext);
-
-  const provider = usePublicClient();
 
   //Function to load the existing messages in a conversation
   const newConversation = async function (xmtp_client, addressTo) {
@@ -118,9 +112,7 @@ export const RainbowKitCustomConnectButton = () => {
     <ConnectButton.Custom>
       {({ account, chain, openConnectModal, mounted }) => {
         const connected = mounted && account && chain;
-        const blockExplorerAddressLink = account
-          ? getBlockExplorerAddressLink(getTargetNetwork(), account.address)
-          : undefined;
+
 
         return (
           <>
@@ -178,9 +170,6 @@ export const RainbowKitCustomConnectButton = () => {
               //   );
               // }
 
-              const handleBroadcast = () => {
-                () => newConversation(globalXmtp);
-              };
 
               return (
                 <div className="px-2 flex justify-end items-center">
