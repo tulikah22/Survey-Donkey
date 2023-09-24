@@ -2,36 +2,27 @@ import { useState } from "react";
 import { abi } from "./../contractDetails/abi";
 import { json } from "@helia/json";
 import { createHelia } from "helia";
-import { base64 } from "multiformats/bases/base64";
-import { CID } from "multiformats/cid";
 import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
+import { useContractWrite, usePrepareContractWrite } from "wagmi";
 // import { useEthersSigner } from "./../ethers";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { EtherInput } from "~~/components/scaffold-eth";
 
-const token =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDM0ZjFiOEZkMjc0ZGMxZDRCZEY1RDBjQmE4NmE2MTRENDgxQTNmMjAiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTU1MjY2OTUxODUsIm5hbWUiOiJTdXJ2ZXlEb25rZXkifQ.1atGOY396u_ehFkFSrFUO9z8XM6sexOzW9VOUCRZFHM";
 const ExampleUI: NextPage = () => {
   const [rewards, setRewards] = useState("");
   // const [jsonQuestion, setJsonQuestion] = useState("");
   const [jsonQuestions, setJsonQuestions] = useState([""]);
   const [ImmutableAddressString, SetImmutableAddressString] = useState(``);
-  const { address } = useAccount();
   const { config } = usePrepareContractWrite({
     address: "0x1B9C7392a5253c9dB15107e35AF6598020c14D0f",
     abi: abi,
     functionName: "createSurvey",
     args: [ImmutableAddressString, rewards],
   });
-  const { data, write } = useContractWrite(config);
-  const { isLoading, isSuccess } = useWaitForTransaction({
-    hash: data?.hash,
-  });
-  const delay = ms => new Promise(res => setTimeout(res, ms));
+  const { write } = useContractWrite(config);
+  const delay = (ms: number | undefined) => new Promise(res => setTimeout(res, ms));
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
 
     // Validate that none of the questions are empty
@@ -58,12 +49,12 @@ const ExampleUI: NextPage = () => {
     //   args: [myImmutableAddress.toString(), rewards],
     // });
   };
-  const handleQuestionChange = (value, index) => {
+  const handleQuestionChange = (value: string, index: number) => {
     const newQuestions = [...jsonQuestions];
     newQuestions[index] = value;
     setJsonQuestions(newQuestions);
   };
-  const handleRemoveQuestion = indexToRemove => {
+  const handleRemoveQuestion = (indexToRemove: number) => {
     const newQuestions = jsonQuestions.filter((_, index) => index !== indexToRemove);
     setJsonQuestions(newQuestions);
   };

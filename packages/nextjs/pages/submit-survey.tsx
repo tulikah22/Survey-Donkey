@@ -1,14 +1,9 @@
 import { useState } from "react";
 import { abi } from "./../contractDetails/abi";
-import { json } from "@helia/json";
-import { createHelia } from "helia";
 // import { useEthersSigner } from "./../ethers";
 import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { usePrepareContractWrite } from "wagmi";
 import { useContractRead } from "wagmi";
 import { MetaHeader } from "~~/components/MetaHeader";
-import { EtherInput } from "~~/components/scaffold-eth";
 
 const questionsData = {
   questions: ["What is your name?", "What is your quest?", "What is your favorite color?"],
@@ -21,19 +16,19 @@ const questionsData = {
 
 const SubmitSurvey: NextPage = () => {
   const [answers, setAnswers] = useState(new Array(questionsData.questions.length).fill(""));
-  const { data, isError, isLoading } = useContractRead({
+  const { data } = useContractRead({
     address: "0x1B9C7392a5253c9dB15107e35AF6598020c14D0f",
     abi: abi,
     functionName: "ownerSurveys",
   });
 
-  const handleInputChange = (index, event) => {
+  const handleInputChange = (index: number, event: any) => {
     const newAnswers = [...answers];
     newAnswers[index] = event.target.value;
     setAnswers(newAnswers);
   };
 
-  const handleSubmit = event => {
+  const handleSubmit = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
     const result = {
       questions: questionsData.questions,
