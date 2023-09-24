@@ -1,8 +1,8 @@
-import { Client } from "@xmtp/xmtp-js";
-import { Wallet, ethers } from "ethers";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Chat from "./Chat";
 import styles from "./Home.module.css";
+import { Client } from "@xmtp/xmtp-js";
+import { ethers } from "ethers";
 
 const PEER_ADDRESS = "0x7E0b0363404751346930AF92C80D1fef932Cc48a";
 
@@ -18,9 +18,7 @@ export default function Home() {
   const newConversation = async function (xmtp_client, addressTo) {
     //Creates a new conversation with the address
     if (await xmtp_client?.canMessage(addressTo)) {
-      const conversation = await xmtp_client.conversations.newConversation(
-        addressTo,
-      );
+      const conversation = await xmtp_client.conversations.newConversation(addressTo);
       convRef.current = conversation;
       const messages = await conversation.messages();
       setMessages(messages);
@@ -71,9 +69,9 @@ export default function Home() {
       const streamMessages = async () => {
         const newStream = await convRef.current.streamMessages();
         for await (const msg of newStream) {
-          const exists = messages.find((m) => m.id === msg.id);
+          const exists = messages.find(m => m.id === msg.id);
           if (!exists) {
-            setMessages((prevMessages) => {
+            setMessages(prevMessages => {
               const msgsnew = [...prevMessages, msg];
               return msgsnew;
             });
@@ -105,11 +103,7 @@ export default function Home() {
       )}
       {/* Render the Chat component if connected, initialized, and messages exist */}
       {isConnected && isOnNetwork && messages && (
-        <Chat
-          client={clientRef.current}
-          conversation={convRef.current}
-          messageHistory={messages}
-        />
+        <Chat client={clientRef.current} conversation={convRef.current} messageHistory={messages} />
       )}
     </div>
   );

@@ -23,9 +23,7 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const { isDarkMode } = useDarkMode();
   const [messages, setMessages] = useState({});
-  // const value = useMemo(() => {
-  //   return [messages, setMessages];
-  // }, [messages]);
+
 
   useEffect(() => {
     if (price > 0) {
@@ -38,9 +36,8 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
   }, [isDarkMode]);
 
   return (
+    <>
     <WagmiConfig config={wagmiConfig}>
-      {console.log(messages, "OOOO")}
-      {/* @ts-ignore */}
       <MessageContext.Provider value={[messages, setMessages]}>
         <NextNProgress />
         <RainbowKitProvider
@@ -59,6 +56,7 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
         </RainbowKitProvider>
       </MessageContext.Provider>
     </WagmiConfig>
+    </>
   );
 };
 

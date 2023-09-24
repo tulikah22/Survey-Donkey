@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useContext, useEffect } from "react";
 import { MessageContext } from "../Context";
 import Chat from "../components/Chat";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useContext, useEffect, useRef, useState } from "react";
 import { MessageContext } from "../../Context";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -28,7 +29,6 @@ const PEER_ADDRESS = "0x7E0b0363404751346930AF92C80D1fef932Cc48a";
 // const broadcasts_array = [Add1, Add2, "0x937C0d4a6294cdfa575de17382c7076b579DC176"];
 let globalXmtp: Client<string | undefined>;
 
-
 /**
  * Custom Wagmi Connect Button (watch balance + custom design)
  */
@@ -39,7 +39,9 @@ export const RainbowKitCustomConnectButton = () => {
   const { disconnect } = useDisconnect();
   const { switchNetwork } = useSwitchNetwork();
   const [addressCopied, setAddressCopied] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isConnected, setIsConnected] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isOnNetwork, setIsOnNetwork] = useState(false);
   const convRef = useRef(null);
   const clientRef = useRef(null);
@@ -47,12 +49,10 @@ export const RainbowKitCustomConnectButton = () => {
   const [messages, setMessages] = useContext(MessageContext);
 
   //Function to load the existing messages in a conversation
-  const newConversation = async function (xmtp_client, addressTo) {
+  const newConversation = async function (xmtp_client: any) {
     //Creates a new conversation with the address
-    if (await xmtp_client?.canMessage(addressTo)) {
-      const conversation = await xmtp_client.conversations.newConversation(
-        addressTo,
-      );
+    if (await xmtp_client?.canMessage(PEER_ADDRESS)) {
+      const conversation = await xmtp_client.conversations.newConversation();
       convRef.current = conversation;
       const messages = await conversation.messages();
       setMessages(messages);
@@ -81,7 +81,7 @@ export const RainbowKitCustomConnectButton = () => {
     globalXmtp = xmtp;
     setIsConnected(true);
     //Create or load conversation with Gm bot
-    newConversation(xmtp, PEER_ADDRESS);
+    newConversation(xmtp);
     // Set the XMTP client in state for later use
     setIsOnNetwork(!!xmtp.address);
     //Set the client in the ref
@@ -89,30 +89,10 @@ export const RainbowKitCustomConnectButton = () => {
     clientRef.current = xmtp;
   };
 
-  useEffect(() => {
-    if (isOnNetwork && convRef.current) {
-      // Function to stream new messages in the conversation
-      const streamMessages = async () => {
-        const newStream = await convRef.current.streamMessages();
-        for await (const msg of newStream) {
-          const exists = messages.find(m => m.id === msg.id);
-          if (!exists) {
-            setMessages(prevMessages => {
-              const msgsnew = [...prevMessages, msg];
-              return msgsnew;
-            });
-          }
-        }
-      };
-      streamMessages();
-    }
-  }, [messages, isConnected, isOnNetwork]);
-
   return (
     <ConnectButton.Custom>
       {({ account, chain, openConnectModal, mounted }) => {
         const connected = mounted && account && chain;
-
 
         return (
           <>
@@ -169,7 +149,6 @@ export const RainbowKitCustomConnectButton = () => {
               //     </div>
               //   );
               // }
-
 
               return (
                 <div className="px-2 flex justify-end items-center">
