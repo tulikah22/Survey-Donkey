@@ -6,6 +6,7 @@ import { createHelia } from "helia";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { usePrepareContractWrite } from "wagmi";
+import { useContractRead } from "wagmi";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { EtherInput } from "~~/components/scaffold-eth";
 
@@ -13,8 +14,18 @@ const questionsData = {
   questions: ["What is your name?", "What is your quest?", "What is your favorite color?"],
 };
 
+// console.log(myImmutableAddress.toString(base64));
+// console.log(await j.get(parsea));
+// const ImmutableAddressString = myImmutableAddress.toString();
+// const parsea = CID.parse(ImmutableAddressString);
+
 const SubmitSurvey: NextPage = () => {
   const [answers, setAnswers] = useState(new Array(questionsData.questions.length).fill(""));
+  const { data, isError, isLoading } = useContractRead({
+    address: "0x1B9C7392a5253c9dB15107e35AF6598020c14D0f",
+    abi: abi,
+    functionName: "ownerSurveys",
+  });
 
   const handleInputChange = (index, event) => {
     const newAnswers = [...answers];
@@ -41,6 +52,8 @@ const SubmitSurvey: NextPage = () => {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree&display=swap" rel="stylesheet" />
       </MetaHeader>
+      {/* @ts-ignore */}
+      <p>{console.log(data)}</p>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-lg w-1/3 mx-auto mt-10">
         {questionsData.questions.map((question, index) => (
           <div key={index} className="flex flex-col space-y-2">

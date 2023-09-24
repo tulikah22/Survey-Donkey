@@ -2,57 +2,70 @@ import { useState } from "react";
 import { abi } from "./../contractDetails/abi";
 import { json } from "@helia/json";
 import { createHelia } from "helia";
-// import { useEthersSigner } from "./../ethers";
+import { base64 } from "multiformats/bases/base64";
+import { CID } from "multiformats/cid";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
-import { usePrepareContractWrite } from "wagmi";
+import { useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
+// import { useEthersSigner } from "./../ethers";
 import { MetaHeader } from "~~/components/MetaHeader";
 import { EtherInput } from "~~/components/scaffold-eth";
 
+const token =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDM0ZjFiOEZkMjc0ZGMxZDRCZEY1RDBjQmE4NmE2MTRENDgxQTNmMjAiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2OTU1MjY2OTUxODUsIm5hbWUiOiJTdXJ2ZXlEb25rZXkifQ.1atGOY396u_ehFkFSrFUO9z8XM6sexOzW9VOUCRZFHM";
 const ExampleUI: NextPage = () => {
   const [rewards, setRewards] = useState("");
-  const [jsonQuestion, setJsonQuestion] = useState("");
+  // const [jsonQuestion, setJsonQuestion] = useState("");
+  const [jsonQuestions, setJsonQuestions] = useState([""]);
+  const [ImmutableAddressString, SetImmutableAddressString] = useState(``);
   const { address } = useAccount();
-
-  //   const { config } = usePrepareContractWrite({
-  //     address: "0xFBA3912Ca04dd458c843e2EE08967fC04f3579c2",
-  //     abi: abi,
-  //     functionName: "mint",
-  //     args: [parseInt(tokenId)],
-  //     enabled: Boolean(tokenId),
-  //   });
-
-  //   const handleDeploy = async () => {
-  //     const Factory = new ethers.ContractFactory(abi, bytecodes, address);
-  //     const contract = await Factory.deploy(param1, param2);
-
-  //     console.log(contract.address);
-  //   };
+  const { config } = usePrepareContractWrite({
+    address: "0x1B9C7392a5253c9dB15107e35AF6598020c14D0f",
+    abi: abi,
+    functionName: "createSurvey",
+    args: [ImmutableAddressString, rewards],
+  });
+  const { data, write } = useContractWrite(config);
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+  const delay = ms => new Promise(res => setTimeout(res, ms));
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Validate that none of the questions are empty
+    if (jsonQuestions.some(question => question.trim() === "")) {
+      alert("Please make sure all question fields are filled out.");
+      return;
+    }
     const helia = await createHelia();
     const j = json(helia);
-    console.log(rewards, jsonQuestion);
+    console.log(rewards, jsonQuestions);
 
-    const myImmutableAddress = await j.add({ rewards, jsonQuestion: jsonQuestion });
-    console.log(myImmutableAddress);
+    // const blob = new Blob([JSON.stringify({ rewards, jsonQuestion: jsonQuestions })], { type: 'application/json' })
+    // const client = new Web3Storage({ token: token })
+    // const cid = await client.put(blob);
+    const myImmutableAddress = await j.add({ rewards, jsonQuestion: jsonQuestions });
+    await delay(5000);
+    console.log(myImmutableAddress.toString());
     console.log(await j.get(myImmutableAddress));
+    SetImmutableAddressString(myImmutableAddress.toString());
+    await delay(5000);
 
-    // Here, we'll call the API with the rewards and jsonQuestion data
-    // const response = await fetch("/api/submitData", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({
-    //     rewards,
-    //     jsonQuestion,
-    //   }),
+    //@ts-ignore
+    // write?.({
+    //   args: [myImmutableAddress.toString(), rewards],
     // });
-
-    // const data = await response.json();
-    // console.log(data);
+  };
+  const handleQuestionChange = (value, index) => {
+    const newQuestions = [...jsonQuestions];
+    newQuestions[index] = value;
+    setJsonQuestions(newQuestions);
+  };
+  const handleRemoveQuestion = indexToRemove => {
+    const newQuestions = jsonQuestions.filter((_, index) => index !== indexToRemove);
+    setJsonQuestions(newQuestions);
   };
   return (
     <>
@@ -66,6 +79,14 @@ const ExampleUI: NextPage = () => {
       </MetaHeader>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-lg w-1/3 mx-auto mt-10">
         <div className="mb-4">
+          {/* {isSuccess && (
+            <div>
+              Successfully minted your NFT!
+              <div>
+                <a href={`https://etherscan.io/tx/${data?.hash}`}>Etherscan</a>
+              </div>
+            </div>
+          )} */}
           <label htmlFor="rewards" className="block text-sm font-medium text-gray-600 mb-2">
             Rewards:
           </label>
@@ -73,21 +94,46 @@ const ExampleUI: NextPage = () => {
           <EtherInput value={rewards} onChange={amount => setRewards(amount)} />
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="jsonQuestion" className="block text-sm font-medium text-gray-600 mb-2">
-            JSON Question:
-          </label>
-          <textarea
-            id="jsonQuestion"
-            value={jsonQuestion}
-            onChange={e => setJsonQuestion(e.target.value)}
-            className="p-2 border rounded-md w-full"
-          />
-        </div>
+        {jsonQuestions.map((question, index) => (
+          <div key={index} className="mb-4 relative">
+            <label htmlFor={`jsonQuestion-${index}`} className="block text-sm font-medium text-gray-600 mb-2">
+              JSON Question {index + 1}:
+            </label>
+            <textarea
+              id={`jsonQuestion-${index}`}
+              value={question}
+              onChange={e => handleQuestionChange(e.target.value, index)}
+              className="p-2 border rounded-md w-full"
+            />
+            {jsonQuestions.length > 1 && ( // Only show remove if more than one question exists
+              <button
+                type="button"
+                className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded"
+                onClick={() => handleRemoveQuestion(index)}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
 
-        <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded">
-          Create Survey
+        <button
+          type="button"
+          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded mb-4 block w-full"
+          onClick={() => setJsonQuestions([...jsonQuestions, ""])}
+        >
+          Add Question
         </button>
+
+        <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded block w-full">
+          Create Survey Data
+        </button>
+        <br />
+        {ImmutableAddressString !== "" && (
+          <button onClick={write} className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded block w-full">
+            Deploy to Blockchain
+          </button>
+        )}
       </form>
     </>
   );
