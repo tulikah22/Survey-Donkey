@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { MessageContext } from "../../Context";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { signMessage } from "@wagmi/core";
+import { Client } from "@xmtp/xmtp-js";
 import { QRCodeSVG } from "qrcode.react";
 import CopyToClipboard from "react-copy-to-clipboard";
-import { useDisconnect, useSwitchNetwork } from "wagmi";
+import { useDisconnect, usePublicClient, useSwitchNetwork, useWalletClient } from "wagmi";
 import {
   ArrowLeftOnRectangleIcon,
   ArrowTopRightOnSquareIcon,
@@ -16,6 +19,20 @@ import { Address, Balance, BlockieAvatar } from "~~/components/scaffold-eth";
 import { useAutoConnect, useNetworkColor } from "~~/hooks/scaffold-eth";
 import { getBlockExplorerAddressLink, getTargetNetwork } from "~~/utils/scaffold-eth";
 
+// import { useWalletClient } from 'wagmi'
+
+const PEER_ADDRESS = "0x7E0b0363404751346930AF92C80D1fef932Cc48a";
+// const Add1 = "0x2078313796dF19f63AB42abE424edd3466298Ef3";
+// const Add2 = "0xF7F1eeCEea32902958bD4924c576548412E537F3";
+// const Add3 = "0x2F1c379ce19218D07dcd1DE08A5b3576a1F21B4A";
+// const broadcasts_array = [Add1, Add2, "0x937C0d4a6294cdfa575de17382c7076b579DC176"];
+let globalXmtp: Client<string | undefined>;
+
+interface Signer {
+  getAddress(): Promise<string>;
+  signMessage(message: ArrayLike<number> | string): Promise<string>;
+}
+
 /**
  * Custom Wagmi Connect Button (watch balance + custom design)
  */
@@ -26,6 +43,76 @@ export const RainbowKitCustomConnectButton = () => {
   const { disconnect } = useDisconnect();
   const { switchNetwork } = useSwitchNetwork();
   const [addressCopied, setAddressCopied] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isOnNetwork, setIsOnNetwork] = useState(false);
+  const convRef = useRef(null);
+  const clientRef = useRef(null);
+  const { data: walletClient } = useWalletClient();
+  const [messages, setMessages] = useContext(MessageContext);
+
+  const provider = usePublicClient();
+
+  //Function to load the existing messages in a conversation
+  const newConversation = async function (xmtp_client, addressTo) {
+    //Creates a new conversation with the address
+    if (await xmtp_client?.canMessage(addressTo)) {
+      const conversation = await xmtp_client.conversations.newConversation(
+        addressTo,
+      );
+      convRef.current = conversation;
+      const messages = await conversation.messages();
+      setMessages(messages);
+    } else {
+      console.log("cant message because is not on the network.");
+      //cant message because is not on the network.
+    }
+  };
+
+  //Function to initialize the XMTP client
+  const initXmtp = async function () {
+    // Create the XMTP client
+    if (!walletClient) {
+      console.warn("No account");
+      return;
+    }
+    const { account } = walletClient;
+    const signer = {
+      getAddress: async () => account.address,
+      signMessage: async (message: string) => {
+        const signature = await signMessage({ message });
+        return signature;
+      },
+    };
+    const xmtp = await Client.create(signer, { env: "production" });
+    globalXmtp = xmtp;
+    setIsConnected(true);
+    //Create or load conversation with Gm bot
+    newConversation(xmtp, PEER_ADDRESS);
+    // Set the XMTP client in state for later use
+    setIsOnNetwork(!!xmtp.address);
+    //Set the client in the ref
+    //@ts-ignore
+    clientRef.current = xmtp;
+  };
+
+  useEffect(() => {
+    if (isOnNetwork && convRef.current) {
+      // Function to stream new messages in the conversation
+      const streamMessages = async () => {
+        const newStream = await convRef.current.streamMessages();
+        for await (const msg of newStream) {
+          const exists = messages.find(m => m.id === msg.id);
+          if (!exists) {
+            setMessages(prevMessages => {
+              const msgsnew = [...prevMessages, msg];
+              return msgsnew;
+            });
+          }
+        }
+      };
+      streamMessages();
+    }
+  }, [messages, isConnected, isOnNetwork]);
 
   return (
     <ConnectButton.Custom>
@@ -82,6 +169,18 @@ export const RainbowKitCustomConnectButton = () => {
                   </div>
                 );
               }
+
+              // if (!chain.unsupported && connected && !isOnNetwork) {
+              //   return (
+              //     <div>
+              //       <button onClick={() => initXmtp()}>Connect to XMTP</button>
+              //     </div>
+              //   );
+              // }
+
+              const handleBroadcast = () => {
+                () => newConversation(globalXmtp);
+              };
 
               return (
                 <div className="px-2 flex justify-end items-center">
@@ -140,15 +239,26 @@ export const RainbowKitCustomConnectButton = () => {
                         </label>
                       </li>
                       <li>
-                        <button className="menu-item btn-sm !rounded-xl flex gap-3 py-3" type="button">
+                        <button
+                          className="menu-item btn-sm !rounded-xl flex gap-3 py-3"
+                          type="button"
+                          onClick={() => initXmtp()}
+                        >
                           <ArrowTopRightOnSquareIcon className="h-6 w-4 ml-2 sm:ml-0" />
-                          <a
-                            target="_blank"
-                            href={blockExplorerAddressLink}
-                            rel="noopener noreferrer"
-                            className="whitespace-nowrap"
-                          >
-                            View on Block Explorer
+                          <a target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
+                            Connect to XMTP
+                          </a>
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          className="menu-item btn-sm !rounded-xl flex gap-3 py-3"
+                          type="button"
+                          onClick={() => newConversation(globalXmtp)}
+                        >
+                          <ArrowTopRightOnSquareIcon className="h-6 w-4 ml-2 sm:ml-0" />
+                          <a target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
+                            Broadcast
                           </a>
                         </button>
                       </li>

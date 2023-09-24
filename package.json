@@ -39,7 +39,8 @@
   },
   "dependencies": {
     "@helia/json": "^1.0.2",
-    "ethers": "^6.7.1",
+    "@xmtp/xmtp-js": "11.0.0",
+    "ethers": "5.7.0",
     "helia": "^2.0.3"
   }
 }
